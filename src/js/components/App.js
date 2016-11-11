@@ -22,19 +22,27 @@ var App = React.createClass({
   componentUnmound: function(){
     BusinessStore.removeChangeListener(this._onChange);
   },
+  // E' la callback che richiamo quando un evento modifica lo stato
   _onChange: function(){
     this.setState(getAppState());
   },
   render: function(){
     console.log(this.state.businesses);
+    if(this.state.mainState === 'new'){
+      var businessForm = <BusinessFormNew />;
+    } else if(this.state.mainState === 'edit'){
+      var businessForm = <BusinessFormEdit />;
+    } else if(this.state.mainState === 'list'){
+      var businessList = <BusinessList businesses={this.state.businesses}/>;
+    }
     return(
       <div className="wrapper">
-        <Navbar />
+        <Navbar mainState={this.state.mainState}/>
         <div className="container">
           <div className="row">
             <div className="col-md-12">
-              <BusinessFormNew />
-              <BusinessList />
+              {businessForm}
+              {businessList}
             </div>
           </div>
         </div>

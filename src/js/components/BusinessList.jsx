@@ -5,10 +5,20 @@ var Business = require('./Business.jsx');
 
 var BusinessList = React.createClass({
   render: function(){
+    console.log('Lista:',this.props.businesses)
+    var businessesNodes;
+    if(this.props.businesses){
+      businessesNodes = this.props.businesses.map(function(business, index){
+        return(
+          <Business businessInfo={business} key={index} />
+        );
+      });
+    } else {
+      businessesNodes = 'Non ci sono liste';
+    }
     return(
       <div>
-        BUSINESS LIST
-        <Business />
+        {businessesNodes}
       </div>
     );
   }

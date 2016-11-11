@@ -1,4 +1,4 @@
-jest.dontMock('../../src/js/components/App.js');
+//jest.dontMock('../../src/js/components/App.js');
 
 describe('App component', function(){
   var React = require('react');

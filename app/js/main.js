@@ -21386,11 +21386,23 @@ module.exports = require('./lib/React');
 var AppDispatcher = require('../dispatcher/AppDispatcher');
 var AppConstants = require('../constants/AppConstants');
 
+// Action Creator - Definisco il type e l'oggetto che voglio modificare nello store.
+// devo richiamare il Dispatcher con il metodo che riceve il mio plain object
 var AppActions = {
   receiveItems: function receiveItems(items) {
     AppDispatcher.handleViewAction({
       actionType: AppConstants.RECEIVE_ITEMS,
       items: items
+    });
+  },
+  newItem: function newItem() {
+    AppDispatcher.handleViewAction({
+      actionType: AppConstants.NEW_ITEM
+    });
+  },
+  cancelItem: function cancelItem() {
+    AppDispatcher.handleViewAction({
+      actionType: AppConstants.CANCEL_ITEM
     });
   }
 };
@@ -21426,15 +21438,23 @@ var App = React.createClass({
   componentUnmound: function componentUnmound() {
     BusinessStore.removeChangeListener(this._onChange);
   },
+  // E' la callback che richiamo quando un evento modifica lo stato
   _onChange: function _onChange() {
     this.setState(getAppState());
   },
   render: function render() {
     console.log(this.state.businesses);
+    if (this.state.mainState === 'new') {
+      var businessForm = React.createElement(BusinessFormNew, null);
+    } else if (this.state.mainState === 'edit') {
+      var businessForm = React.createElement(BusinessFormEdit, null);
+    } else if (this.state.mainState === 'list') {
+      var businessList = React.createElement(BusinessList, { businesses: this.state.businesses });
+    }
     return React.createElement(
       'div',
       { className: 'wrapper' },
-      React.createElement(Navbar, null),
+      React.createElement(Navbar, { mainState: this.state.mainState }),
       React.createElement(
         'div',
         { className: 'container' },
@@ -21444,8 +21464,8 @@ var App = React.createClass({
           React.createElement(
             'div',
             { className: 'col-md-12' },
-            React.createElement(BusinessFormNew, null),
-            React.createElement(BusinessList, null)
+            businessForm,
+            businessList
           )
         )
       )
@@ -21468,8 +21488,18 @@ var Business = React.createClass({
   render: function render() {
     return React.createElement(
       'div',
-      null,
-      'BUSINESS'
+      { className: 'well' },
+      React.createElement(
+        'h3',
+        null,
+        this.props.businessInfo.name
+      ),
+      React.createElement(
+        'small',
+        null,
+        'Category: ',
+        this.props.businessInfo.category
+      )
     );
   }
 });
@@ -21665,11 +21695,19 @@ var BusinessList = React.createClass({
   displayName: 'BusinessList',
 
   render: function render() {
+    console.log('Lista:', this.props.businesses);
+    var businessesNodes;
+    if (this.props.businesses) {
+      businessesNodes = this.props.businesses.map(function (business, index) {
+        return React.createElement(Business, { businessInfo: business, key: index });
+      });
+    } else {
+      businessesNodes = 'Non ci sono liste';
+    }
     return React.createElement(
       'div',
       null,
-      'BUSINESS LIST',
-      React.createElement(Business, null)
+      businessesNodes
     );
   }
 });
@@ -21686,7 +21724,20 @@ var BusinessStore = require('../stores/BusinessStore');
 var Navbar = React.createClass({
   displayName: 'Navbar',
 
+  newItemClick: function newItemClick() {
+    AppActions.newItem();
+  },
+  homeItemClick: function homeItemClick() {
+    AppActions.cancelItem();
+  },
   render: function render() {
+    var newLink = '';
+    var homeLink = '';
+    if (this.props.mainState === 'list') {
+      homeLink = 'active';
+    } else if (this.props.mainState === 'new') {
+      newLink = 'active';
+    }
     return React.createElement(
       'div',
       null,
@@ -21725,7 +21776,7 @@ var Navbar = React.createClass({
               { className: 'nav navbar-nav' },
               React.createElement(
                 'li',
-                { className: 'active' },
+                { className: homeLink, onClick: this.homeItemClick },
                 React.createElement(
                   'a',
                   { href: '#' },
@@ -21734,7 +21785,7 @@ var Navbar = React.createClass({
               ),
               React.createElement(
                 'li',
-                null,
+                { className: newLink, onClick: this.newItemClick },
                 React.createElement(
                   'a',
                   { href: '#about' },
@@ -21755,7 +21806,9 @@ module.exports = Navbar;
 'use strict';
 
 module.exports = {
-  RECEIVE_ITEMS: 'RECEIVE_ITEMS'
+  RECEIVE_ITEMS: 'RECEIVE_ITEMS',
+  NEW_ITEM: 'NEW_ITEM',
+  CANCEL_ITEM: 'CANCEL_ITEM'
 };
 
 },{}],182:[function(require,module,exports){
@@ -21843,7 +21896,7 @@ var AppAPI = require('../utils/appAPI');
 
 var CHANGE_EVENT = 'change';
 
-// Definisco lo store, cioè lo stato del mio domain:
+// Definisco lo store, cioè lo STATO del mio domain:
 var _businesses = {
   list: [],
   mainState: 'list'
@@ -21867,9 +21920,17 @@ var BusinessStore = assign({}, EventEmitter.prototype, {
 BusinessStore.dispatchToken = AppDispatcher.register(function (payload) {
   var action = payload.action;
   switch (action.actionType) {
-    case 'RECEIVE_ITEMS':
+    case AppConstants.RECEIVE_ITEMS:
       console.log("Receiving items...", action.items);
       _businesses.list = action.items;
+      BusinessStore.emit(CHANGE_EVENT);
+      break;
+    case AppConstants.NEW_ITEM:
+      _businesses.mainState = 'new';
+      BusinessStore.emit(CHANGE_EVENT);
+      break;
+    case AppConstants.CANCEL_ITEM:
+      _businesses.mainState = 'list';
       BusinessStore.emit(CHANGE_EVENT);
       break;
   }
@@ -21886,7 +21947,9 @@ var AppActions = require('../actions/AppActions');
 
 module.exports = {
   getAllItems: function getAllItems() {
+    // Converto la stringa in formato JSON
     var items = JSON.parse(localStorage.getItem('businesses'));
+    // Simulazione della parte success di una callback
     // Qui dovrei avere una callback di successo se facessi la richiesta ad un server vero :)
     AppActions.receiveItems(items);
   }

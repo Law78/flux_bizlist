@@ -6,7 +6,7 @@ var AppAPI = require('../utils/appAPI');
 
 var CHANGE_EVENT =  'change';
 
-// Definisco lo store, cioè lo stato del mio domain:
+// Definisco lo store, cioè lo STATO del mio domain:
 var _businesses = {
   list: [],
   mainState: 'list'
@@ -31,9 +31,17 @@ var BusinessStore = assign({}, EventEmitter.prototype, {
 BusinessStore.dispatchToken = AppDispatcher.register(function(payload){
   var action = payload.action;
   switch(action.actionType){
-    case 'RECEIVE_ITEMS':
+    case AppConstants.RECEIVE_ITEMS:
       console.log("Receiving items...", action.items);
       _businesses.list = action.items;
+      BusinessStore.emit(CHANGE_EVENT);
+      break;
+    case AppConstants.NEW_ITEM:
+      _businesses.mainState = 'new';
+      BusinessStore.emit(CHANGE_EVENT);
+      break;
+    case AppConstants.CANCEL_ITEM:
+      _businesses.mainState = 'list';
       BusinessStore.emit(CHANGE_EVENT);
       break;
   }
